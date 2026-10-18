@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fuel — planlegg inntak per tur</title>
+<meta name="description" content="Frittstående kalkulator for karbohydrat, væske og natrium under sykling, basert på gjeldende forskning.">
+<meta name="theme-color" content="#0d0f12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fuel">
+<style>
+:root{
+  --bg:#0d0f12; --panel:#15181d; --panel2:#1b1f26; --line:#262b34;
+  --text:#e9ecf1; --muted:#8a92a0; --dim:#5d6572;
+  --carb:#ffb347; --fluid:#5cc8ff; --salt:#c9d1dc; --warn:#ff6b6b; --ok:#6fe3a5;
+  --radius:16px; --gap:14px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{padding:max(16px,env(safe-area-inset-top)) 16px 48px}
+a{color:var(--fluid)}
+.app{max-width:1100px;margin:0 auto}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 4px 20px}
+header h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
+header h1 span{color:var(--carb)}
+header .sub{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+@media(min-width:900px){.grid{grid-template-columns:380px 1fr;align-items:start}.sticky{position:sticky;top:16px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.card h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+.field{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:0}
+.field label{font-size:14px}
+.field small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}
+.num{display:flex;align-items:center;gap:6px}
+.num input,.num select{width:92px;background:var(--panel2);border:1px solid var(--line);color:var(--text);font:600 15px var(--mono);padding:8px 10px;border-radius:10px;text-align:right;outline:none}
+.num select{width:auto;font-family:var(--sans);font-weight:500;text-align:left}
+.num input:focus,.num select:focus{border-color:var(--fluid)}
+.num .unit{color:var(--dim);font-size:12px;min-width:26px}
+input[type=range]{width:100%;accent-color:var(--carb);margin:6px 0 2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:12px;padding:6px 10px;border-radius:999px;cursor:pointer;user-select:none}
+.chip.on{border-color:var(--carb);color:var(--carb);background:rgba(255,179,71,.08)}
+.chip.z1.on{border-color:#9aa5b5;color:#c9d1dc;background:rgba(201,209,220,.08)}
+.chip.z2.on{border-color:#5cc8ff;color:#5cc8ff;background:rgba(92,200,255,.08)}
+.chip.z3.on{border-color:#6fe3a5;color:#6fe3a5;background:rgba(111,227,165,.08)}
+.chip.z4.on{border-color:#ffb347;color:#ffb347;background:rgba(255,179,71,.08)}
+.chip.z5.on{border-color:#ff6b6b;color:#ff6b6b;background:rgba(255,107,107,.08)}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.toggle button{background:transparent;border:0;color:var(--muted);font-size:12.5px;padding:7px 11px;cursor:pointer}
+.toggle button.on{background:var(--panel2);color:var(--text)}
+.hero{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap)}
+@media(max-width:560px){.hero{grid-template-columns:1fr}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 14px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+.stat .k{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.stat .v{font:600 40px/1.1 var(--mono);letter-spacing:-.03em;margin:8px 0 2px;color:var(--c)}
+.stat .v small{font-size:16px;color:var(--muted);font-weight:500;margin-left:4px;font-family:var(--sans)}
+.stat .r{font-size:13px;color:var(--muted)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border-bottom:0}
+.row b{font-family:var(--mono);font-weight:600}
+.row .l{color:var(--muted)}
+.bottle{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.bottle svg{width:54px;height:auto}
+.bottle .big{font:600 26px var(--mono);letter-spacing:-.02em}
+.bottle .big span{color:var(--muted);font:500 13px var(--sans);margin-left:6px}
+.note{font-size:13px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+.flag{display:flex;gap:10px;align-items:flex-start;background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.3);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.45;margin-top:10px}
+.flag.ok{background:rgba(111,227,165,.07);border-color:rgba(111,227,165,.3)}
+.flag.info{background:rgba(92,200,255,.07);border-color:rgba(92,200,255,.3)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;text-align:right;border-bottom:1px solid var(--line);font-family:var(--mono)}
+th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
+tr:last-child td{border-bottom:0}
+.bar{height:8px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:8px;display:flex}
+.bar i{display:block;height:100%}
+details{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+summary{cursor:pointer;font-size:13.5px;color:var(--muted);list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"+";font-family:var(--mono)}
+details[open] summary::after{content:"–"}
+details .body{font-size:13.5px;line-height:1.6;color:#c6ccd6;padding:8px 0 4px}
+details .body h4{margin:14px 0 4px;font-size:13px;color:var(--text)}
+details .body p{margin:6px 0}
+details .body code{font-family:var(--mono);font-size:12.5px;background:var(--panel2);padding:1px 5px;border-radius:5px}
+.src{font-size:12.5px;color:var(--muted);line-height:1.55;margin:4px 0}
+.foot{color:var(--dim);font-size:12px;text-align:center;margin-top:26px;line-height:1.5}
+.pill{display:inline-block;font:600 11px var(--mono);padding:2px 7px;border-radius:6px;background:var(--panel2);color:var(--muted);vertical-align:middle;margin-left:6px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>Fuel<span>.</span> <span style="color:var(--muted);font-weight:500">planlegg inntak per tur</span></h1>
+  <div class="sub">Karbohydrat · væske · salt</div>
+</header>
+
+<div class="grid">
+<!-- ============ INPUTS ============ -->
+<div class="sticky">
+<div class="card">
+  <h2>Deg</h2>
+  <div class="field"><label>Kroppsvekt</label><div class="num"><input id="weight" type="number" step="0.5" min="40" max="150"><span class="unit">kg</span></div></div>
+  <div class="field"><label>FTP<small>Functional Threshold Power</small></label><div class="num"><input id="ftp" type="number" step="5" min="80" max="500"><span class="unit">W</span></div></div>
+  <div class="field"><label>Magen tåler<small>Hva du er vant med i dag</small></label><div class="num"><select id="gut"><option value="60">inntil 60 g/t</option><option value="90" selected>60–90 g/t</option><option value="120">90–120 g/t (trent)</option></select></div></div>
+</div>
+
+<div class="card" style="margin-top:var(--gap)">
+  <h2>Turen</h2>
+  <div class="field" style="grid-template-columns:1fr"><label>Varighet <b id="durLbl" style="font-family:var(--mono)"></b></label>
+    <input id="dur" type="range" min="30" max="420" step="15"></div>
+  <div class="field" style="grid-template-columns:1fr"><label>Planlagt snitteffekt <b id="pwrLbl" style="font-family:var(--mono)"></b> <span class="pill" id="ifLbl"></span></label>
+    <input id="pwr" type="range" min="50" max="450" step="5">
+    <div class="chips" id="zones">
+      <span class="chip z1" data-z="1" title="&lt;55 % FTP">Z1 restitusjon</span>
+      <span class="chip z2" data-z="2" title="56–75 % FTP">Z2 rolig</span>
+      <span class="chip z3" data-z="3" title="76–90 % FTP">Z3 tempo</span>
+      <span class="chip z4" data-z="4" title="91–105 % FTP">Z4 terskel</span>
+      <span class="chip z5" data-z="5" title="106–120 % FTP">Z5 VO₂max</span>
+    </div></div>
+  <div class="field"><label>Temperatur</label><div class="num"><input id="temp" type="number" step="1" min="-15" max="45"><span class="unit">°C</span></div></div>
+  <div class="field"><label>Luftfuktighet</label><div class="num"><input id="rh" type="number" step="5" min="10" max="100"><span class="unit">%</span></div></div>
+  <div class="field"><label>Hvor</label><div class="toggle" id="where"><button data-v="out" class="on">Ute</button><button data-v="in">Rulle / inne</button></div></div>
+  <div class="field"><label>Svette<small>Hvis du har veid deg før/etter</small></label><div class="num"><input id="sweat" type="number" step="0.1" min="0.2" max="3" placeholder="auto"><span class="unit">l/t</span></div></div>
+  <div class="field"><label>Saltsvetting<small>Hvite striper, svie i øynene</small></label><div class="num"><select id="salty"><option value="auto" selected>Auto (etter temperatur)</option><option value="500">Lite</option><option value="800">Middels</option><option value="1100">Mye</option><option value="1500">Veldig mye</option></select></div></div>
+  <div class="field"><label>Strategi<small>Hvor karbohydratene skal komme fra</small></label><div class="toggle" id="strat"><button data-v="bottle" class="on">Mest i flaska</button><button data-v="balanced">Balansert</button></div></div>
+  <div class="field"><label>Maks drikke<small>Det du klarer å få i deg per time</small></label><div class="num"><input id="maxDrink" type="number" step="50" min="300" max="1500"><span class="unit">ml/t</span></div></div>
+  <div class="field"><label>Flaskestørrelse</label><div class="num"><input id="bottle" type="number" step="50" min="300" max="1500"><span class="unit">ml</span></div></div>
+  <div class="field"><label>Maks sukker i flaska<small>6–8 % er isotont. 10–12 % går fint for vant mage; over 12 % tømmes magen saktere</small></label><div class="num"><input id="conc" type="number" step="1" min="4" max="20"><span class="unit">%</span></div></div>
+</div>
+</div>
+
+<!-- ============ OUTPUTS ============ -->
+<div>
+<div class="hero">
+  <div class="stat" style="--c:var(--carb)"><div class="k">Karbohydrat</div><div class="v" id="carbV">—<small>g/t</small></div><div class="r" id="carbR"></div></div>
+  <div class="stat" style="--c:var(--fluid)"><div class="k">Væske</div><div class="v" id="fluidV">—<small>ml/t</small></div><div class="r" id="fluidR"></div></div>
+  <div class="stat" style="--c:var(--salt)"><div class="k">Natrium</div><div class="v" id="naV">—<small>mg/l</small></div><div class="r" id="naR"></div></div>
+</div>
+
+<div class="card" style="margin-top:var(--gap)">
+  <h2>Per flaske <span class="pill" id="bottlePill"></span></h2>
+  <div class="bottle">
+    <svg viewBox="0 0 54 120" fill="none" aria-hidden="true">
+      <rect x="18" y="4" width="18" height="12" rx="3" fill="#2a303a"/>
+      <path d="M14 20h26l4 14v76a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V34z" fill="#1b1f26" stroke="#2f3641"/>
+      <rect id="bottleFill" x="11" y="60" width="32" height="55" rx="5" fill="#ffb347" opacity=".55"/>
+    </svg>
+    <div>
+      <div class="row"><span class="l">Sukker (eller malto + fruktose)</span><b id="bCarb" style="color:var(--carb)"></b></div>
+      <div class="row"><span class="l">Bordsalt</span><b id="bSalt"></b></div>
+      <div class="row"><span class="l">Konsentrasjon</span><b id="bConc"></b></div>
+      <div class="row"><span class="l">Drikkes over</span><b id="bTime"></b></div>
+    </div>
+  </div>
+  <div id="bottleFlags"></div>
+  <p class="note" id="mixNote"></p>
+</div>
+
+<div class="card" style="margin-top:var(--gap)">
+  <h2>Hele turen</h2>
+  <div class="row"><span class="l">Karbohydrat totalt</span><b id="tCarb"></b></div>
+  <div class="row"><span class="l">Væske totalt</span><b id="tFluid"></b></div>
+  <div class="row"><span class="l">Antall flasker</span><b id="tBottles"></b></div>
+  <div class="row"><span class="l">Estimert svettetap</span><b id="tSweat"></b></div>
+  <div class="row"><span class="l">Forventet vekttap ved mål</span><b id="tLoss"></b></div>
+  <div class="row"><span class="l">Estimert karbohydratforbruk</span><b id="tBurn"></b></div>
+  <div class="bar" id="burnBar" title="Andel av forbruket som dekkes av inntak"></div>
+  <p class="note" id="burnNote"></p>
+  <div id="rideFlags"></div>
+</div>
+
+<div class="card" style="margin-top:var(--gap)">
+  <h2>Timeplan</h2>
+  <table><thead><tr><th>Time</th><th>Karb</th><th>Væske</th><th>Akk. karb</th><th>Akk. væske</th></tr></thead><tbody id="plan"></tbody></table>
+  <p class="note">Start inntaket fra første kvarter — ikke vent til du er sulten eller tørst. Fordel karbohydratene jevnt, gjerne litt hvert 15.–20. minutt.</p>
+</div>
+
+<div class="card" style="margin-top:var(--gap)">
+  <h2>Slik regner den</h2>
+  <details><summary>Karbohydrat</summary><div class="body">
+    <p>Utgangspunktet er varighetsbaserte intervaller fra gjeldende retningslinjer (ACSM/AND/DC 2016) slik de er oppdatert i Morton mfl. 2026: under 45 min trengs ikke karbohydrat, 45–75 min 0–30 g/t (munnskylling holder ofte), 1–2,5 t 30–60 g/t, 2,5–4 t 60–90 g/t, og over 4 t 60–90 g/t med 90–120 g/t for trente mager. Toppen av intervallet begrenses av det du har satt under «Magen tåler».</p>
+    <p>Intensiteten plasserer deg innenfor intervallet: intensitetsfaktor (IF = effekt ÷ FTP) på 0,55 gir bunnen, 0,90 og over gir toppen. Korte, veldig harde økter (IF &gt; 0,85 i 45–90 min) løftes til 30–60 g/t fordi karbohydrat da er dominerende drivstoff.</p>
+    <p>Over 60 g/t anbefales to transportveier (glukose + fruktose). Kalkulatoren viser fordeling ved 1:0,8 glukose:fruktose, som ligger midt i området 0,6–1,0 fruktose:glukose som gir høyest eksogen oksidasjon. Vanlig sukker (sukrose) er 1:1 og ligger innenfor området — derfor fungerer sukker + juice.</p>
+    <p>Forbruk: metabolsk energi ≈ effekt × 3,6 kJ ÷ 0,23 (brutto virkningsgrad). Karbohydratandel av energien stiger med intensitet (≈ 35 % ved IF 0,50, 70 % ved 0,75, 92 % ved 0,95). Inntak regnes dekket med ~80 % oksidasjonseffektivitet. Glykogenlager settes grovt til 6 g/kg for en trent syklist; tallet er et overslag, ikke en måling.</p>
+    <p>Varme: eksogen karbohydratoksidasjon faller 20–30 % i varmen, men anbefalt inntak holdes likt. Kalkulatoren reduserer derfor ikke målet, men anbefaler flytende form og flagger det.</p>
+  </div></details>
+  <details><summary>Væske og svette</summary><div class="body">
+    <p>Svetterate estimeres når du ikke har målt selv: <code>0,003 × watt + 0,03 × (°C − 10)</code> l/t (under 10 °C halveres temperaturleddet, fordi tykkere klær holder på varmen), skalert med √(vekt ÷ 72), +10–25 % ved høy luftfuktighet og +25 % innendørs uten fartsvind. Det er en forenkling kalibrert mot typiske verdier for syklister (0,5–1,0 l/t ved 15–22 °C, 1,2–1,8 l/t i varme) og mot normaldata (Baker mfl. 2016: snitt 1,2 l/t, 0,3–5,7 l/t). Den faktiske spredningen mellom personer er stor — vei deg før og etter en tur og legg inn tallet ditt.</p>
+    <p>Hydreringsbehovet er å begrense væsketap til under 2 % av kroppsvekt (ACSM 2007): svetterate minus det du kan tillate deg å tape fordelt på varigheten, aldri under 60 % av svetteraten og aldri over «Maks drikke».</p>
+    <p><b>Strategi «Mest i flaska»:</b> karbohydratmålet bestemmer væskemengden. Væske/t = det største av hydreringsbehovet og <code>karb ÷ maks konsentrasjon</code>, begrenset av «Maks drikke». I kulde betyr det ofte at du drikker mer enn du svetter; overskuddet skilles ut som urin. Det er ufarlig i moderate mengder når drikken inneholder natrium — kalkulatoren hever da natriumgulvet til 450 mg/l og viser forventet overskudd. Rent vann i store mengder over lang tid er det som gir hyponatremi, ikke saltet sportsdrikk på ~1 l/t.</p>
+    <p><b>Strategi «Balansert»:</b> væsken følger hydreringsbehovet, og karbohydrat som ikke får plass ved maks konsentrasjon må tas som mat eller gel.</p>
+    <p>Konsentrasjon: 6–8 % er isotont og tømmes raskest fra magen. 10–12 % tolereres godt av de fleste trente og brukes i mange kommersielle «high carb»-blandinger; over 12 % flagges. Maltodekstrin har lavere osmolalitet enn sukker og er mer skånsomt ved høye konsentrasjoner.</p>
+  </div></details>
+  <details><summary>Natrium og salt</summary><div class="body">
+    <p>Svettenatrium varierer fra ~200 til over 2 000 mg/l. Normaldata gir et helkroppsnitt på ca. 36 mmol/l ≈ 825 mg/l (Baker mfl. 2016). Auto-valget bruker 700 mg/l under 25 °C og 950 mg/l fra 25 °C, basert på at du opplever saltsvetting primært i varme. Overstyr med «Saltsvetting»-valget om du vet mer.</p>
+    <p>Drikken settes opp til å erstatte ca. 70 % av natriumtapet per time, fordelt på væsken du faktisk drikker, og begrenses til 300–1 500 mg/l. ACSM anbefaler 0,5–0,7 g natrium per liter ved økter over en time, høyere for saltsvettere. Bordsalt er 39 % natrium: salt (g) = natrium (mg) × 2,54 ÷ 1000. Som referanse veier en strøken teskje fint salt ca. 6 g.</p>
+  </div></details>
+  <details><summary>Kilder</summary><div class="body">
+    <p class="src">Morton JP, Fell JM, Gonzalez JT, Hearris MA, Podlogar T, Pugh JN, Wallis GA. <i>From Metabolism to Medals: Contemporary Perspectives and Revisiting Carbohydrate Guidelines for Fueling Endurance Athletes during Exercise.</i> J Nutr 2026;156(5):101442. — intervaller per varighet, 120 g/t for trente, fruktose:glukose 0,6–1,0, varmeeffekt 20–30 %, kroppsstørrelse.</p>
+    <p class="src">Hearris MA mfl. <i>Exogenous and endogenous carbohydrate oxidation with 90 vs 120 g/h.</i> Eur J Appl Physiol 2022. — topp eksogen oksidasjon 1,36 g/min (90 g/t) og 1,60 g/min (120 g/t, 0,8:1), effektivitet 86 % vs 76 %, ingen forskjell i mageplager.</p>
+    <p class="src">Thomas DT, Erdman KA, Burke LM. <i>Nutrition and Athletic Performance.</i> ACSM/AND/DC Position Stand, Med Sci Sports Exerc 2016. — 30–60 g/t (1–2,5 t), inntil 90 g/t (&gt; 2,5 t).</p>
+    <p class="src">Sawka MN, Burke LM, Eichner ER, Maughan RJ, Montain SJ, Stachenfeld NS. <i>Exercise and Fluid Replacement.</i> ACSM Position Stand, Med Sci Sports Exerc 2007;39(2):377–90. — &lt; 2 % vekttap, natrium 0,5–0,7 g/l, karbohydrat 6–8 % i drikke.</p>
+    <p class="src">Baker LB, Barnes KA, Anderson ML, Passe DH, Stofan JR. <i>Normative data for regional sweat sodium concentration and whole-body sweating rate in athletes.</i> J Sports Sci 2016;34(4):358–68. — 506 utøvere, svetterate 1,21 ± 0,68 l/t, helkroppsnatrium 35,9 ± 10,4 mmol/l.</p>
+    <p class="src">Jay O mfl. <i>Whole body sweat rate prediction: outdoor running and cycling exercise.</i> J Appl Physiol 2024 (doi 10.1152/japplphysiol.00831.2023). — svetterate utendørs drives av effekt, kroppsmasse, lufttemperatur, fuktighet og vind. Kalkulatorens forenklede formel er inspirert av disse variablene, ikke en gjengivelse av modellen.</p>
+    <p class="src">Precision Fuel &amp; Hydration. <i>How to estimate how much sodium you lose in your sweat.</i> — praktisk inndeling av saltsvetting i ~200–500, 500–800, 800–1 200 og 1 200–2 300+ mg/l.</p>
+    <p class="src" style="margin-top:10px">Kalkulatoren er et planleggingsverktøy for friske, trente voksne, ikke medisinsk rådgivning. Test alltid nye mengder på trening før konkurranse.</p>
+  </div></details>
+</div>
+
+<p class="foot"><a href="#" id="shareLink">Kopier lenke med innstillingene dine</a> — åpne den på en annen enhet, så er alt ferdig utfylt.<br>Alt regnes lokalt i nettleseren. Innstillingene lagres på denne enheten. Sist oppdatert kunnskapsgrunnlag: oktober 2026.</p>
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const S={weight:72,ftp:250,gut:90,dur:120,pwr:180,temp:15,rh:60,where:'out',sweat:'',salty:'auto',bottle:950,conc:10,strat:'bottle',maxDrink:1000};
+try{Object.assign(S,JSON.parse(localStorage.getItem('fuelcalc')||'{}'))}catch(e){}
+try{const q=new URLSearchParams(location.search);q.forEach((v,k)=>{if(k in S)S[k]=(v===''||isNaN(v)||k==='where'||k==='strat'||(k==='salty'&&v==='auto'))?v:+v;});if([...q].length)history.replaceState(null,'',location.pathname);}catch(e){}
+const save=()=>{try{localStorage.setItem('fuelcalc',JSON.stringify(S))}catch(e){}};
+
+// ---- bind inputs
+['weight','ftp','gut','dur','pwr','temp','rh','sweat','salty','bottle','conc','maxDrink'].forEach(k=>{
+  const el=$(k); el.value=S[k];
+  el.addEventListener('input',()=>{S[k]=el.type==='number'?(el.value===''?'':+el.value):(el.tagName==='SELECT'&&!isNaN(el.value)?+el.value:el.value); if(k==='salty'&&el.value!=='auto')S[k]=+el.value; if(k==='salty'&&el.value==='auto')S[k]='auto'; save(); render();});
+});
+$('strat').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.strat);b.onclick=()=>{S.strat=b.dataset.v;$('strat').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
+$('where').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.where);b.onclick=()=>{S.where=b.dataset.v;$('strat').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.strat);b.onclick=()=>{S.strat=b.dataset.v;$('strat').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
+$('where').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
+const ZONES=[[0,.55],[.56,.75],[.76,.90],[.91,1.05],[1.06,1.20]];
+$('zones').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const z=ZONES[c.dataset.z-1];S.pwr=Math.round((z[0]+z[1])/2*S.ftp/5)*5;$('pwr').value=S.pwr;save();render();});
+
+// ---- helpers
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(x,pts)=>{if(x<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++){if(x<=pts[i][0]){const[a,b]=pts[i-1],[c,d]=pts[i];return b+(d-b)*(x-a)/(c-a);}}return pts[pts.length-1][1];};
+const r5=v=>Math.round(v/5)*5, r50=v=>Math.round(v/50)*50;
+const no=(v,d=1)=>v.toFixed(d).replace('.',',');
+const fmtT=m=>{const h=Math.floor(m/60),mm=m%60;return (h?h+' t ':'')+(mm?mm+' min':'')||'0';};
+const zoneOf=IF=>IF<=.55?1:IF<=.75?2:IF<=.90?3:IF<=1.05?4:5;
+
+// ---- model
+function calc(){
+  const w=S.weight||72, ftp=S.ftp||250, durH=S.dur/60, P=S.pwr, IF=P/ftp, gut=+S.gut;
+  // Carbs: duration band
+  let lo,hi,band;
+  if(S.dur<45){lo=0;hi=0;band='Under 45 min: ikke nødvendig';}
+  else if(S.dur<75){lo=0;hi=30;band='45–75 min: 0–30 g/t';if(IF>.85){lo=30;hi=60;band='Kort og hard: 30–60 g/t';}}
+  else if(S.dur<150){lo=30;hi=60;band='1–2,5 t: 30–60 g/t';if(IF>.85&&S.dur<=90){band='Kort og hard: 30–60 g/t';}}
+  else if(S.dur<240){lo=60;hi=90;band='2,5–4 t: 60–90 g/t';}
+  else {lo=60;hi=90;band='Over 4 t: 60–90 g/t';}
+  if(gut>=120&&S.dur>=150){hi=120;band=band.replace(/60–90/,'60–120');}
+  hi=Math.min(hi,gut); lo=Math.min(lo,hi);
+  const pos=clamp((IF-.55)/.35,0,1);
+  const carb=r5(lo+(hi-lo)*pos);
+  // expenditure
+  const kcalH=P*3.6/0.23/4.184;
+  const choFrac=lerp(IF,[[.5,.35],[.65,.55],[.75,.70],[.85,.82],[.95,.92],[1.05,.98]]);
+  const burnH=kcalH*choFrac/4;
+  const store=6*w;
+  const netH=burnH-carb*0.8;
+  // sweat
+  let sr=S.sweat!==''&&S.sweat>0?+S.sweat:null, srAuto=false;
+  if(sr===null){srAuto=true;const tTerm=S.temp>=10?0.03*(S.temp-10):0.015*(S.temp-10); sr=(0.003*P+tTerm)*Math.sqrt(w/72);
+    if(S.rh>60)sr*=1+(S.rh-60)/100*0.6; if(S.where==='in')sr*=1.25; sr=clamp(sr,0.3,2.5);}
+  const allowed=0.02*w; // litres
+  const maxDrink=(S.maxDrink||1000)/1000, maxConc=(S.conc||10)/100;
+  // hydration need: keep loss < 2 % body mass, never below 60 % of sweat, never above what you can drink
+  let hyd=Math.max(sr-allowed/durH,0.6*sr); hyd=clamp(hyd,0.3,Math.min(maxDrink,sr));
+  let fluid;
+  if(S.strat==='bottle'){ // carbs decide the volume: enough drink to carry the target at max concentration
+    const carry=carb/1000/maxConc; fluid=clamp(Math.max(hyd,carry),0.3,maxDrink);
+  } else fluid=hyd;
+  fluid=Math.ceil(fluid*1000/50)*50;
+  const sweatTot=sr*durH, fluidTot=fluid/1000*durH, loss=sweatTot-fluidTot;
+  // sodium
+  const sweatNa=S.salty==='auto'?(S.temp>=25?950:700):+S.salty;
+  const naLossH=sr*sweatNa;
+  let naConc=clamp(0.7*naLossH/(fluid/1000),fluid/1000>sr?450:300,1500); naConc=Math.round(naConc/50)*50;
+  // bottle
+  const bottleH=S.bottle/fluid; // hours per bottle
+  const bCarbIdeal=carb*bottleH; const bCarbDrink=Math.min(bCarbIdeal,S.bottle*maxConc);
+  const conc=bCarbDrink/S.bottle*100;
+  const outsideH=Math.max(0,carb-bCarbDrink/bottleH);
+  const bNa=naConc*S.bottle/1000, bSalt=bNa*2.54/1000;
+  return {w,ftp,durH,P,IF,gut,lo,hi,band,carb,hyd,maxDrink,maxConc,kcalH,choFrac,burnH,store,netH,sr,srAuto,fluid,sweatTot,fluidTot,loss,sweatNa,naLossH,naConc,bottleH,bCarbDrink,conc,outsideH,bSalt,bNa};
+}
+
+function render(){
+  const m=calc(); const z=zoneOf(m.IF);
+  $('durLbl').textContent=fmtT(S.dur); $('pwrLbl').textContent=S.pwr+' W';
+  $('ifLbl').textContent='IF '+no(m.IF,2)+' · Z'+z;
+  $('zones').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',+c.dataset.z===z));
+  // hero
+  $('carbV').innerHTML=m.carb+'<small>g/t</small>';
+  $('carbR').textContent=m.band+(m.hi>m.lo?` · tak ${m.gut} g/t`:'');
+  $('fluidV').innerHTML=m.fluid+'<small>ml/t</small>';
+  $('fluidR').textContent=`Svette ${no(m.sr,2)} l/t ${m.srAuto?'(estimat)':'(målt)'}`+(m.fluid/1000>m.sr+0.05?' · drikker mer enn du svetter':'');
+  $('naV').innerHTML=m.naConc+'<small>mg/l</small>';
+  $('naR').textContent=`Tap ≈ ${Math.round(m.naLossH)} mg/t · svette ${m.sweatNa} mg/l`;
+  // bottle
+  $('bottlePill').textContent=S.bottle+' ml';
+  $('bCarb').textContent=Math.round(m.bCarbDrink)+' g';
+  $('bSalt').textContent=no(m.bSalt,1)+' g (≈ '+no(m.bSalt/6,1)+' ts) · '+Math.round(m.bNa)+' mg Na';
+  $('bConc').textContent=no(m.conc,1)+' %';
+  $('bTime').textContent=fmtT(Math.round(m.bottleH*60/5)*5);
+  $('bottleFill').setAttribute('y',115-55*clamp(m.conc/10,0.15,1)); $('bottleFill').setAttribute('height',55*clamp(m.conc/10,0.15,1));
+  let bf='';
+  if(m.outsideH>=5) bf+=`<div class="flag info"><span>ℹ︎</span><span>Flaska bærer ${Math.round(m.bCarbDrink/m.bottleH)} g/t ved ${S.conc} % og ${m.fluid} ml/t. De resterende <b>${r5(m.outsideH)} g/t</b> må komme utenfra (gel, cola, banan)${S.strat==='bottle'?' — eller øk «Maks sukker i flaska» / «Maks drikke»':''}.</span></div>`;
+  else if(S.strat==='bottle'&&m.carb>0) bf+=`<div class="flag ok"><span>✓</span><span>Hele karbohydratmålet får plass i flaskene. Mat underveis er bonus, ikke nødvendig.</span></div>`;
+  if(m.conc>12) bf+=`<div class="flag"><span>⚠︎</span><span>${no(m.conc,0)} % er godt over isotont. Magen tømmes saktere og risikoen for ubehag øker — test på trening, og vurder maltodekstrin + fruktose framfor rent sukker ved så høy konsentrasjon.</span></div>`;
+  $('bottleFlags').innerHTML=bf;
+  let mix='';
+  if(m.carb>60){const g=Math.round(m.carb/1.8),f=m.carb-g;mix=`Over 60 g/t: bruk to sukkertyper. Ved 1:0,8 blir det ca. <b>${g} g glukose/maltodekstrin + ${f} g fruktose</b> per time. Vanlig sukker (1:1) og juice ligger innenfor det anbefalte området og fungerer.`;}
+  else if(m.carb>0) mix='Under 60 g/t holder én sukkertype, men sukker eller juice (glukose + fruktose) går like fint.';
+  else mix='Vann, eventuelt litt salt, er nok på denne økta. Munnskylling med sportsdrikk kan gi en liten effekt på harde økter.';
+  if(S.temp>=25&&m.carb>=60) mix+=' <b>Varme:</b> tarmen tar opp 20–30 % mindre av det du inntar — hold målet, men velg flytende framfor fast føde og juster ned 10–15 g/t hvis magen protesterer.';
+  $('mixNote').innerHTML=mix;
+  // ride totals
+  const tC=m.carb*m.durH;
+  $('tCarb').textContent=Math.round(tC)+' g';
+  $('tFluid').textContent=no(m.fluidTot,1)+' l';
+  $('tBottles').textContent=no(m.fluidTot*1000/S.bottle,1);
+  $('tSweat').textContent=no(m.sweatTot,1)+' l';
+  const lossPct=m.loss/m.w*100;
+  $('tLoss').textContent=`${no(m.loss,1)} kg (${no(lossPct,1)} %)`;
+  $('tLoss').style.color=lossPct>2?'var(--warn)':'var(--text)';
+  if(m.loss<0)$('tLoss').textContent=`+${no(-m.loss,1)} kg overskudd (${no(-lossPct,1)} %)`;
+  const burnTot=m.burnH*m.durH;
+  $('tBurn').textContent=`${Math.round(burnTot)} g (${Math.round(m.burnH)} g/t, ${Math.round(m.choFrac*100)} % av ${Math.round(m.kcalH)} kcal/t)`;
+  const cover=clamp(m.carb*0.8/m.burnH,0,1);
+  $('burnBar').innerHTML=`<i style="width:${(cover*100).toFixed(0)}%;background:var(--carb)"></i><i style="width:${((1-cover)*100).toFixed(0)}%;background:#3a2f1e"></i>`;
+  const depleteH=m.netH>0?m.store/m.netH:Infinity;
+  let bn=`Inntaket dekker ca. <b>${Math.round(cover*100)} %</b> av karbohydratforbruket; resten tas fra glykogen (≈ ${m.store} g lager ved ${m.w} kg).`;
+  if(isFinite(depleteH)) bn+= depleteH<m.durH?` Med dette tempoet er lageret grovt sett tomt etter <b style="color:var(--warn)">${no(depleteH,1)} t</b> — senk farten, øk inntaket eller start med fulle lagre.`:` Lageret rekker anslagsvis ${no(depleteH,1)} t, altså lenger enn turen.`;
+  $('burnNote').innerHTML=bn;
+  let rf='';
+  if(lossPct<-1) rf+=`<div class="flag info"><span>ℹ︎</span><span>Du drikker ca. ${no(-m.loss,1)} l mer enn du svetter på turen — regn med en tissepause eller to. Det er greit så lenge drikken har salt (den har ${m.naConc} mg/l). Gå ikke høyere enn 1–1,2 l/t over mange timer i kulde.</span></div>`;
+  if(lossPct>2) rf+=`<div class="flag"><span>⚠︎</span><span>Forventet vekttap over 2 %. Du drikker alt magen rimelig tar (maks 1,2 l/t); vurder kortere tur, lavere intensitet, kjøligere tidspunkt eller forhåndshydrering med 5–7 ml/kg 2–4 t før start.</span></div>`;
+  if(m.srAuto) rf+=`<div class="flag info"><span>ℹ︎</span><span>Svetteraten er et estimat. Vei deg naken før og etter en typisk tur (legg til det du drakk, trekk fra toalettbesøk) og legg tallet inn under «Svette» — det gjør væske- og saltanbefalingen langt sikrere.</span></div>`;
+  if(m.carb>90) rf+=`<div class="flag ok"><span>✓</span><span>90–120 g/t krever at tarmen er trent. Trapp opp med ca. 10 g/t annenhver uke på trening før du bruker det i ritt.</span></div>`;
+  $('rideFlags').innerHTML=rf;
+  // plan
+  const n=Math.ceil(m.durH-0.01); let rows='',ac=0,af=0;
+  for(let i=1;i<=n;i++){const frac=Math.min(1,m.durH-(i-1)); const c=m.carb*frac,f=m.fluid*frac; ac+=c;af+=f;
+    const label=i===n&&frac<1?`${i-1}–${no(m.durH,2).replace(/,?0+$/,'')} t`:`${i-1}–${i} t`;
+    rows+=`<tr><td>${label}</td><td>${Math.round(c)} g</td><td>${Math.round(f)} ml</td><td>${Math.round(ac)} g</td><td>${no(af/1000,2)} l</td></tr>`;}
+  $('plan').innerHTML=rows;
+}
+render();
+$('shareLink').onclick=async e=>{e.preventDefault();const u=location.origin+location.pathname+'?'+new URLSearchParams(Object.fromEntries(Object.entries(S).map(([k,v])=>[k,String(v)]))).toString();try{await navigator.clipboard.writeText(u);e.target.textContent='Lenke kopiert ✓';}catch(x){prompt('Kopier lenken:',u);}setTimeout(()=>e.target.textContent='Kopier lenke med innstillingene dine',2500);};
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
