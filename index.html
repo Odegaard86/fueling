@@ -93,6 +93,14 @@ details .body code{font-family:var(--mono);font-size:12.5px;background:var(--pan
 .foot{color:var(--dim);font-size:12px;text-align:center;margin-top:26px;line-height:1.5}
 .pill{display:inline-block;font:600 11px var(--mono);padding:2px 7px;border-radius:6px;background:var(--panel2);color:var(--muted);vertical-align:middle;margin-left:6px}
 .hide{display:none!important}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2)}
+.step button{background:transparent;border:0;color:var(--text);font:600 18px var(--mono);width:38px;height:36px;cursor:pointer}
+.step button:active{background:var(--line)}
+.step b{font:600 15px var(--mono);min-width:28px;text-align:center}
+.src3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.src3 div{background:var(--panel2);border-radius:10px;padding:10px;text-align:center}
+.src3 .n{font:600 20px var(--mono);color:var(--carb)}
+.src3 .l{font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -125,6 +133,8 @@ details .body code{font-family:var(--mono);font-size:12.5px;background:var(--pan
       <span class="chip z4" data-z="4" title="91–105 % FTP">Z4 terskel</span>
       <span class="chip z5" data-z="5" title="106–120 % FTP">Z5 VO₂max</span>
     </div></div>
+  <div class="field"><label>Bananer<small>≈ 25 g karbohydrat per stk</small></label><div class="step" data-k="bananas"><button data-d="-1">−</button><b id="bananasV">0</b><button data-d="1">+</button></div></div>
+  <div class="field"><label>Brus, 0,33 l<small>Cola, Urge, Fanta, energidrikk ≈ 35 g</small></label><div class="step" data-k="cans"><button data-d="-1">−</button><b id="cansV">0</b><button data-d="1">+</button></div></div>
   <div class="field"><label>Temperatur</label><div class="num"><input id="temp" type="number" step="1" min="-15" max="45"><span class="unit">°C</span></div></div>
   <div class="field"><label>Luftfuktighet</label><div class="num"><input id="rh" type="number" step="5" min="10" max="100"><span class="unit">%</span></div></div>
   <div class="field"><label>Hvor</label><div class="toggle" id="where"><button data-v="out" class="on">Ute</button><button data-v="in">Rulle / inne</button></div></div>
@@ -196,6 +206,7 @@ details .body code{font-family:var(--mono);font-size:12.5px;background:var(--pan
     <p>Svetterate estimeres når du ikke har målt selv: <code>0,003 × watt + 0,03 × (°C − 10)</code> l/t (under 10 °C halveres temperaturleddet, fordi tykkere klær holder på varmen), skalert med √(vekt ÷ 72), +10–25 % ved høy luftfuktighet og +25 % innendørs uten fartsvind. Det er en forenkling kalibrert mot typiske verdier for syklister (0,5–1,0 l/t ved 15–22 °C, 1,2–1,8 l/t i varme) og mot normaldata (Baker mfl. 2016: snitt 1,2 l/t, 0,3–5,7 l/t). Den faktiske spredningen mellom personer er stor — vei deg før og etter en tur og legg inn tallet ditt.</p>
     <p>Hydreringsbehovet er å begrense væsketap til under 2 % av kroppsvekt (ACSM 2007): svetterate minus det du kan tillate deg å tape fordelt på varigheten, aldri under 60 % av svetteraten og aldri over «Maks drikke».</p>
     <p><b>Strategi «Mest i flaska»:</b> karbohydratmålet bestemmer væskemengden. Væske/t = det største av hydreringsbehovet og <code>karb ÷ maks konsentrasjon</code>, begrenset av «Maks drikke». I kulde betyr det ofte at du drikker mer enn du svetter; overskuddet skilles ut som urin. Det er ufarlig i moderate mengder når drikken inneholder natrium — kalkulatoren hever da natriumgulvet til 450 mg/l og viser forventet overskudd. Rent vann i store mengder over lang tid er det som gir hyponatremi, ikke saltet sportsdrikk på ~1 l/t.</p>
+    <p><b>Bananer og brus:</b> en vanlig banan fra norsk dagligvare (ca. 120 g uten skall) regnes som 25 g karbohydrat; en 0,33 l boks sukkerholdig brus (Cola, Urge, Fanta, energidrikk, 10–11 g sukker/100 ml) som 35 g karbohydrat og 330 ml væske. Natrium i begge er ubetydelig. Karbohydratet fordeles jevnt over turen og trekkes fra det flaskene må bære; brusvæsken trekkes fra totalt væskebehov, men flaskene holdes på minst 250 ml/t for å frakte saltet.</p>
     <p><b>Strategi «Balansert»:</b> væsken følger hydreringsbehovet, og karbohydrat som ikke får plass ved maks konsentrasjon må tas som mat eller gel.</p>
     <p>Konsentrasjon: 6–8 % er isotont og tømmes raskest fra magen. 10–12 % tolereres godt av de fleste trente og brukes i mange kommersielle «high carb»-blandinger; over 12 % flagges. Maltodekstrin har lavere osmolalitet enn sukker og er mer skånsomt ved høye konsentrasjoner.</p>
   </div></details>
@@ -223,7 +234,8 @@ details .body code{font-family:var(--mono);font-size:12.5px;background:var(--pan
 <script>
 (function(){
 const $=id=>document.getElementById(id);
-const S={weight:72,ftp:250,gut:90,dur:120,pwr:180,temp:15,rh:60,where:'out',sweat:'',salty:'auto',bottle:950,conc:10,strat:'bottle',maxDrink:1000};
+const S={weight:72,ftp:250,gut:90,dur:120,pwr:180,temp:15,rh:60,where:'out',sweat:'',salty:'auto',bottle:950,conc:10,strat:'bottle',maxDrink:1000,bananas:0,cans:0};
+const BAN_G=25, CAN_G=35, CAN_ML=330;
 try{Object.assign(S,JSON.parse(localStorage.getItem('fuelcalc')||'{}'))}catch(e){}
 try{const q=new URLSearchParams(location.search);q.forEach((v,k)=>{if(k in S)S[k]=(v===''||isNaN(v)||k==='where'||k==='strat'||(k==='salty'&&v==='auto'))?v:+v;});if([...q].length)history.replaceState(null,'',location.pathname);}catch(e){}
 const save=()=>{try{localStorage.setItem('fuelcalc',JSON.stringify(S))}catch(e){}};
@@ -233,8 +245,12 @@ const save=()=>{try{localStorage.setItem('fuelcalc',JSON.stringify(S))}catch(e){
   const el=$(k); el.value=S[k];
   el.addEventListener('input',()=>{S[k]=el.type==='number'?(el.value===''?'':+el.value):(el.tagName==='SELECT'&&!isNaN(el.value)?+el.value:el.value); if(k==='salty'&&el.value!=='auto')S[k]=+el.value; if(k==='salty'&&el.value==='auto')S[k]='auto'; save(); render();});
 });
-$('strat').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.strat);b.onclick=()=>{S.strat=b.dataset.v;$('strat').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
-$('where').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.where);b.onclick=()=>{S.where=b.dataset.v;$('strat').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.strat);b.onclick=()=>{S.strat=b.dataset.v;$('strat').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
+document.querySelectorAll('.step').forEach(st=>{const k=st.dataset.k;$(k+'V').textContent=S[k];st.querySelectorAll('button').forEach(b=>b.onclick=()=>{S[k]=clamp((S[k]||0)+ +b.dataset.d,0,12);$(k+'V').textContent=S[k];save();render();});});
+$('strat').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.strat);b.onclick=()=>{S.strat=b.dataset.v;document.querySelectorAll('.step').forEach(st=>{const k=st.dataset.k;$(k+'V').textContent=S[k];st.querySelectorAll('button').forEach(b=>b.onclick=()=>{S[k]=clamp((S[k]||0)+ +b.dataset.d,0,12);$(k+'V').textContent=S[k];save();render();});});
+$('strat').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
+$('where').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.where);b.onclick=()=>{S.where=b.dataset.v;document.querySelectorAll('.step').forEach(st=>{const k=st.dataset.k;$(k+'V').textContent=S[k];st.querySelectorAll('button').forEach(b=>b.onclick=()=>{S[k]=clamp((S[k]||0)+ +b.dataset.d,0,12);$(k+'V').textContent=S[k];save();render();});});
+$('strat').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.strat);b.onclick=()=>{S.strat=b.dataset.v;document.querySelectorAll('.step').forEach(st=>{const k=st.dataset.k;$(k+'V').textContent=S[k];st.querySelectorAll('button').forEach(b=>b.onclick=()=>{S[k]=clamp((S[k]||0)+ +b.dataset.d,0,12);$(k+'V').textContent=S[k];save();render();});});
+$('strat').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
 $('where').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));save();render();}});
 const ZONES=[[0,.55],[.56,.75],[.76,.90],[.91,1.05],[1.06,1.20]];
 $('zones').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const z=ZONES[c.dataset.z-1];S.pwr=Math.round((z[0]+z[1])/2*S.ftp/5)*5;$('pwr').value=S.pwr;save();render();});
@@ -271,27 +287,32 @@ function calc(){
   let sr=S.sweat!==''&&S.sweat>0?+S.sweat:null, srAuto=false;
   if(sr===null){srAuto=true;const tTerm=S.temp>=10?0.03*(S.temp-10):0.015*(S.temp-10); sr=(0.003*P+tTerm)*Math.sqrt(w/72);
     if(S.rh>60)sr*=1+(S.rh-60)/100*0.6; if(S.where==='in')sr*=1.25; sr=clamp(sr,0.3,2.5);}
+  const foodCarbH=((S.bananas||0)*BAN_G+(S.cans||0)*CAN_G)/durH, cansFluidH=(S.cans||0)*CAN_ML/1000/durH;
+  const bottleTargetH=Math.max(0,carb-foodCarbH);
   const allowed=0.02*w; // litres
   const maxDrink=(S.maxDrink||1000)/1000, maxConc=(S.conc||10)/100;
   // hydration need: keep loss < 2 % body mass, never below 60 % of sweat, never above what you can drink
   let hyd=Math.max(sr-allowed/durH,0.6*sr); hyd=clamp(hyd,0.3,Math.min(maxDrink,sr));
   let fluid;
-  if(S.strat==='bottle'){ // carbs decide the volume: enough drink to carry the target at max concentration
-    const carry=carb/1000/maxConc; fluid=clamp(Math.max(hyd,carry),0.3,maxDrink);
+  if(S.strat==='bottle'){ // carbs decide the volume: enough bottle drink to carry what food doesn't cover
+    const carry=bottleTargetH/1000/maxConc+cansFluidH; fluid=clamp(Math.max(hyd,carry),0.3,maxDrink);
   } else fluid=hyd;
-  fluid=Math.ceil(fluid*1000/50)*50;
+  // bottle fluid = total minus what the cans give (floor 250 ml/t so salt still has a carrier)
+  let bFluid=Math.max(0.25,fluid-cansFluidH); fluid=bFluid+cansFluidH;
+  fluid=Math.ceil(fluid*1000/50)*50; bFluid=Math.ceil(bFluid*1000/50)*50;
   const sweatTot=sr*durH, fluidTot=fluid/1000*durH, loss=sweatTot-fluidTot;
   // sodium
   const sweatNa=S.salty==='auto'?(S.temp>=25?950:700):+S.salty;
   const naLossH=sr*sweatNa;
-  let naConc=clamp(0.7*naLossH/(fluid/1000),fluid/1000>sr?450:300,1500); naConc=Math.round(naConc/50)*50;
+  let naConc=clamp(0.7*naLossH/(bFluid/1000),fluid/1000>sr?450:300,1500); naConc=Math.round(naConc/50)*50;
   // bottle
-  const bottleH=S.bottle/fluid; // hours per bottle
-  const bCarbIdeal=carb*bottleH; const bCarbDrink=Math.min(bCarbIdeal,S.bottle*maxConc);
+  const bottleH=S.bottle/bFluid; // hours per bottle
+  const bCarbIdeal=bottleTargetH*bottleH; const bCarbDrink=Math.min(bCarbIdeal,S.bottle*maxConc);
   const conc=bCarbDrink/S.bottle*100;
-  const outsideH=Math.max(0,carb-bCarbDrink/bottleH);
+  const bottleCarbH=bCarbDrink/bottleH;
+  const outsideH=Math.max(0,carb-bottleCarbH-foodCarbH);
   const bNa=naConc*S.bottle/1000, bSalt=bNa*2.54/1000;
-  return {w,ftp,durH,P,IF,gut,lo,hi,band,carb,hyd,maxDrink,maxConc,kcalH,choFrac,burnH,store,netH,sr,srAuto,fluid,sweatTot,fluidTot,loss,sweatNa,naLossH,naConc,bottleH,bCarbDrink,conc,outsideH,bSalt,bNa};
+  return {w,ftp,durH,P,IF,gut,lo,hi,band,carb,foodCarbH,cansFluidH,bottleTargetH,bFluid,bottleCarbH,hyd,maxDrink,maxConc,kcalH,choFrac,burnH,store,netH,sr,srAuto,fluid,sweatTot,fluidTot,loss,sweatNa,naLossH,naConc,bottleH,bCarbDrink,conc,outsideH,bSalt,bNa};
 }
 
 function render(){
@@ -303,7 +324,8 @@ function render(){
   $('carbV').innerHTML=m.carb+'<small>g/t</small>';
   $('carbR').textContent=m.band+(m.hi>m.lo?` · tak ${m.gut} g/t`:'');
   $('fluidV').innerHTML=m.fluid+'<small>ml/t</small>';
-  $('fluidR').textContent=`Svette ${no(m.sr,2)} l/t ${m.srAuto?'(estimat)':'(målt)'}`+(m.fluid/1000>m.sr+0.05?' · drikker mer enn du svetter':'');
+  $('carbR').textContent+=m.foodCarbH>0?` · ${Math.round(m.bottleCarbH)} fra flaske, ${Math.round(m.foodCarbH)} fra mat`:'';
+  $('fluidR').textContent=`Svette ${no(m.sr,2)} l/t ${m.srAuto?'(estimat)':'(målt)'}`+(m.cansFluidH>0?` · flaske ${m.bFluid} + brus ${Math.round(m.cansFluidH*1000)}`:'')+(m.fluid/1000>m.sr+0.05?' · mer enn du svetter':'');
   $('naV').innerHTML=m.naConc+'<small>mg/l</small>';
   $('naR').textContent=`Tap ≈ ${Math.round(m.naLossH)} mg/t · svette ${m.sweatNa} mg/l`;
   // bottle
@@ -314,8 +336,11 @@ function render(){
   $('bTime').textContent=fmtT(Math.round(m.bottleH*60/5)*5);
   $('bottleFill').setAttribute('y',115-55*clamp(m.conc/10,0.15,1)); $('bottleFill').setAttribute('height',55*clamp(m.conc/10,0.15,1));
   let bf='';
-  if(m.outsideH>=5) bf+=`<div class="flag info"><span>ℹ︎</span><span>Flaska bærer ${Math.round(m.bCarbDrink/m.bottleH)} g/t ved ${S.conc} % og ${m.fluid} ml/t. De resterende <b>${r5(m.outsideH)} g/t</b> må komme utenfra (gel, cola, banan)${S.strat==='bottle'?' — eller øk «Maks sukker i flaska» / «Maks drikke»':''}.</span></div>`;
-  else if(S.strat==='bottle'&&m.carb>0) bf+=`<div class="flag ok"><span>✓</span><span>Hele karbohydratmålet får plass i flaskene. Mat underveis er bonus, ikke nødvendig.</span></div>`;
+  const tot=m.carb*m.durH, fb=Math.round(m.bottleCarbH*m.durH), fban=(S.bananas||0)*BAN_G, fcan=(S.cans||0)*CAN_G;
+  bf+=`<div class="src3"><div><div class="n">${fb}</div><div class="l">g fra flasker</div></div><div><div class="n">${fban}</div><div class="l">g fra ${S.bananas||0} banan${S.bananas===1?'':'er'}</div></div><div><div class="n">${fcan}</div><div class="l">g fra ${S.cans||0} brus</div></div></div>`;
+  if(m.outsideH>=5) bf+=`<div class="flag info"><span>ℹ︎</span><span>Flaska bærer ${Math.round(m.bottleCarbH)} g/t ved ${S.conc} % og ${m.bFluid} ml/t. Det mangler <b>${r5(m.outsideH)} g/t</b> — legg til en banan eller brus, eller øk «Maks sukker i flaska» / «Maks drikke».</span></div>`;
+  else if(m.foodCarbH>m.carb+5) bf+=`<div class="flag"><span>⚠︎</span><span>Bananer og brus gir ${Math.round(m.foodCarbH)} g/t alene — mer enn målet på ${m.carb} g/t. Flaska trenger da ikke sukker; ta bort noe mat eller bruk flaska bare til vann og salt.</span></div>`;
+  else if(m.carb>0) bf+=`<div class="flag ok"><span>✓</span><span>Målet på ${Math.round(tot)} g er dekket: ${fb} g i flaskene${fban+fcan>0?` og ${fban+fcan} g fra mat og brus`:''}.</span></div>`;
   if(m.conc>12) bf+=`<div class="flag"><span>⚠︎</span><span>${no(m.conc,0)} % er godt over isotont. Magen tømmes saktere og risikoen for ubehag øker — test på trening, og vurder maltodekstrin + fruktose framfor rent sukker ved så høy konsentrasjon.</span></div>`;
   $('bottleFlags').innerHTML=bf;
   let mix='';
